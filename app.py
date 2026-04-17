@@ -7,10 +7,10 @@ from data_manager import buscar_datos, df
 st.set_page_config(
     page_title="Consulta de Servidores Públicos",
     page_icon="🔍",
-    layout="wide" # Wide para permitir que la franja naranja sea del 100%
+    layout="wide"
 )
 
-# Función para convertir imagen local a base64 (Garantiza que el logo aparezca)
+# Función para logo en base64
 def get_base64_image(image_path):
     if os.path.exists(image_path):
         with open(image_path, "rb") as img_file:
@@ -18,12 +18,18 @@ def get_base64_image(image_path):
     return None
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-logo_b64 = get_base64_image(os.path.join(BASE_DIR, 'static', 'Logo.png'))
+logo_b64 = get_base64_image(os.path.join(BASE_DIR, 'static', 'logo.png'))
 
-# --- 2. INYECCIÓN DE CSS INSTITUCIONAL ---
+# --- 2. TODO TU CSS ORIGINAL INYECTADO ---
 st.markdown(f"""
     <style>
-    /* VARIABLES Y RESET DE MÁRGENES STREAMLIT */
+    /* Reset de Streamlit para permitir diseño 100% */
+    .block-container {{ padding: 0rem !important; max-width: 100% !important; }}
+    header {{ visibility: hidden; display: none; }}
+    footer {{ visibility: hidden; }}
+    #root > div:nth-child(1) > div > div > div {{ padding: 0; }}
+
+    /* TUS ESTILOS CSS ORIGINALES */
     :root {{
         --color-principal-oscuro: #00304F;
         --color-acento-fuerte: #FF5E12;
@@ -34,24 +40,16 @@ st.markdown(f"""
         --color-fondo-hover: #57A0D4;
     }}
 
-    /* Eliminar contenedores de Streamlit */
-    .block-container {{
-        padding: 0rem !important;
-        max-width: 100% !important;
+    body {{
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background-color: var(--color-fondo-pagina);
     }}
-    
-    header {{ visibility: hidden; height: 0; }}
-    footer {{ visibility: hidden; }}
 
-    /* CABECERA (FRANJA NARANJA) AL 100% */
-    .custom-header {{
+    #header {{
         background-color: var(--color-acento-fuerte);
         height: 70px;
-        width: 100%;
         position: fixed;
-        top: 0;
-        left: 0;
+        top: 0; left: 0; right: 0;
         z-index: 1000;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         display: flex;
@@ -60,108 +58,96 @@ st.markdown(f"""
         padding: 0 40px;
     }}
 
-    .logo-img {{
-        max-height: 50px;
-    }}
+    #logo-aseg {{ max-height: 50px; width: auto; }}
 
-    /* CONTENEDOR TIPO TARJETA (Tu .container de CSS) */
-    .main-container {{
+    .container {{
         max-width: 900px;
-        margin: 110px auto 40px auto; /* 110px para bajarlo de la franja fixed */
+        margin: 100px auto;
         background: #ffffff;
         padding: 30px;
         border-radius: 12px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }}
 
-    h1 {{
-        color: var(--color-principal-oscuro);
-        text-align: center;
-        margin-bottom: 30px;
-        font-weight: 600;
-        font-size: 2rem;
+    h1 {{ color: var(--color-principal-oscuro); text-align: center; margin-bottom: 30px; font-weight: 600; font-size: 32px; }}
+
+    /* Simulación de tu Formulario con Streamlit */
+    .stTextInput > div > div > input {{
+        padding: 12px !important;
+        border-radius: 6px !important;
+        border: 1px solid var(--color-fondo-claro) !important;
+        text-transform: uppercase;
     }}
 
-    /* Estilo del Formulario (Contenedor de búsqueda) */
-    .search-row {{
-        display: flex;
-        gap: 10px;
-        margin-bottom: 30px;
-        padding: 15px;
-        border: 1px solid var(--color-fondo-claro);
-        border-radius: 8px;
-        background-color: #f7f9fc;
-    }}
-
-    /* Botón */
-    .stButton>button {{
+    .stButton > button {{
         background-color: var(--color-principal-oscuro) !important;
         color: white !important;
-        border: none !important;
         padding: 12px 25px !important;
         border-radius: 6px !important;
         font-weight: 500 !important;
-        transition: background-color 0.3s !important;
+        height: 48px !important;
+        width: 100%;
     }}
+
+    /* Estilos de tus mensajes */
+    .message {{ padding: 15px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; text-align: center; border: 1px solid; font-family: sans-serif; }}
+    .error-msg {{ background-color: #fce8e6; color: #c5221f; border-color: #f9bdbb; }}
+    .success-msg {{ background-color: #e6f4ea; color: #1e8e3e; border-color: #c3e8cd; }}
+
+    /* Tabla de Resultados Original */
+    h2 {{ color: var(--color-texto-oscuro); border-bottom: 2px solid var(--color-fondo-claro); padding-bottom: 10px; margin-top: 30px; font-size: 24px; }}
     
-    .stButton>button:hover {{
-        background-color: var(--color-fondo-hover) !important;
-    }}
-
-    /* Estilos de Tabla */
-    thead tr th {{
-        background-color: var(--color-acento-claro) !important;
-        color: white !important;
-        text-transform: uppercase !important;
-        font-size: 14px !important;
-    }}
-
-    h2 {{
-        color: var(--color-texto-oscuro);
-        border-bottom: 2px solid var(--color-fondo-claro);
-        padding-bottom: 10px;
-        margin-top: 30px;
-    }}
+    .table-container {{ width: 100%; margin-top: 15px; overflow-x: auto; }}
+    table {{ width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }}
+    th {{ background-color: var(--color-acento-claro) !important; color: white !important; padding: 12px 15px; text-align: left; text-transform: uppercase; font-size: 14px; }}
+    td {{ padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--color-fondo-claro); color: #333; }}
+    tr:nth-child(even) {{ background-color: #f9f9f9; }}
     </style>
-    
-    <div class="custom-header">
-        <img class="logo-img" src="data:image/png;base64,{logo_b64}" alt="Logo">
+
+    <div id="header">
+        <img id="logo-aseg" src="data:image/png;base64,{logo_b64}" alt="Logo de ASEG">
     </div>
     """, unsafe_allow_html=True)
 
-# --- 3. CUERPO DE LA APP ---
-# Todo el contenido va dentro del div 'main-container' para respetar el ancho de 900px
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
-
+# --- 3. ESTRUCTURA HTML DENTRO DEL CONTAINER ---
+st.markdown('<div class="container">', unsafe_allow_html=True)
 st.markdown('<h1>🔍 Consulta de Servidores Públicos</h1>', unsafe_allow_html=True)
 
-# Simulamos tu 'form' de HTML usando columnas
-with st.container():
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        query = st.text_input(
-            "Búsqueda", 
-            placeholder="Ingrese RFC o Nombre Completo", 
-            label_visibility="collapsed"
-        ).strip().upper()
-    with col2:
-        buscar = st.button("Buscar")
+# Recreamos el Formulario (Input + Botón)
+col_input, col_btn = st.columns([4, 1])
+with col_input:
+    query = st.text_input("busqueda", placeholder="Ingrese RFC o Nombre Completo", label_visibility="collapsed").strip().upper()
+with col_btn:
+    btn_buscar = st.button("Buscar")
 
-# Resultados
-if buscar or query:
+# --- LÓGICA DE RESULTADOS ---
+if btn_buscar or query:
     if df is not None:
-        mensaje, resultados_df = buscar_datos(query)
-        if "éxito" in mensaje.lower():
-            st.success(mensaje)
-            st.markdown(f"<h2>👤 {resultados_df['Nombre'].iloc[0]}</h2>", unsafe_allow_html=True)
-            st.table(resultados_df)
-        else:
-            st.error(mensaje)
+        mensaje, resultados = buscar_datos(query)
+        
+        # Clase dinámica para el mensaje (Error o Success)
+        clase_msg = "error-msg" if ("No se" in mensaje or "Error" in mensaje) else "success-msg"
+        st.markdown(f'<p class="message {clase_msg}">{mensaje}</p>', unsafe_allow_html=True)
+        
+        if resultados is not None:
+            # Título con el nombre del servidor (H2)
+            st.markdown(f"<h2>{resultados['Nombre'].iloc[0]}</h2>", unsafe_allow_html=True)
+            
+            # Tabla construida manualmente con HTML para que sea IDÉNTICA
+            html_tabla = '<div class="table-container"><table><thead><tr>'
+            for col in resultados.columns:
+                html_tabla += f'<th>{col}</th>'
+            html_tabla += '</tr></thead><tbody>'
+            
+            for _, row in resultados.iterrows():
+                html_tabla += '<tr>'
+                for val in row:
+                    html_tabla += f'<td>{val}</td>'
+                html_tabla += '</tr>'
+            html_tabla += '</tbody></table></div>'
+            
+            st.markdown(html_tabla, unsafe_allow_html=True)
     else:
-        st.error("Error: La base de datos no está disponible.")
+        st.markdown('<p class="message error-msg">Error: Base de datos no cargada.</p>', unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True) # Cerramos main-container
-
-# Pie de página fuera del contenedor
-st.markdown("<center style='color:#666; font-size:14px;'>© 2026 Sistema de Consulta Institucional - ASEG</center>", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True) # Cierre de container
