@@ -1,18 +1,17 @@
-# data_manager.py
 import pandas as pd
 import re
 import unicodedata
 import os
-import numpy as np
+import streamlit as st
 
-# --- 1. CONFIGURACIÓN Y CARGA DE DATOS ---
+# --- 1. CONFIGURACIÓN DE RUTAS ---
+# Definimos las rutas a los archivos .parquet dentro de la carpeta 'data'
+DATA_PART1 = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede_P1.parquet')
+DATA_PART2 = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede_P2.parquet')
+DATA_PART3 = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede_P3.parquet')
+MUNICIPIOS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'TABLA_MUNICIPIOS.parquet')
 
-# Nota: Asegúrate que estos archivos están en la carpeta 'data/'
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede.xlsx')
-MUNICIPIOS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'TABLA_MUNICIPIOS.xlsx')
-
-df = None
-df_municipios = None
+# --- 2. FUNCIONES DE APOYO ---
 
 def normalizar_nombre(nombre):
     """Convierte texto a mayúsculas y elimina acentos para una búsqueda flexible."""
@@ -23,108 +22,97 @@ def normalizar_nombre(nombre):
     nombre = "".join(c for c in nombre if unicodedata.category(c) != "Mn")
     return nombre
 
-def cargar_dataframe():
-    """Carga, enriquece con la tabla de municipios y pre-normaliza el DataFrame principal."""
-    global df_municipios
-    
-    # 1. Cargar la Tabla de Municipios (Lookup Table)
+def fecha_formato_largo(fecha):
+    """Convierte un objeto datetime a un formato de texto largo en español."""
+    if pd.isna(fecha):
+        return "FECHA NO DISPONIBLE"
+    meses = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ]
+    return f"{fecha.day} DE {meses[fecha.month - 1].upper()} DE {fecha.year}"
+
+# --- 3. CARGA DE DATOS CON CACHÉ ---
+
+@st.cache_data
+def cargar_todo():
+    """Carga las 3 partes del archivo principal y la tabla de municipios."""
+    df_final = None
+    df_muni = None
+
+    # A. Cargar Tabla de Municipios (Lookup)
     if os.path.exists(MUNICIPIOS_FILE):
         try:
-            # Asumimos Columnas A (Clave) y C (Nombre Corregido)
-            df_municipios = pd.read_excel(MUNICIPIOS_FILE, 
-                                          usecols="A,C", 
-                                          header=None, # Asumir que no hay encabezado en la primera fila
-                                          names=['Clave_Original', 'Entidad_Corregida'])
-            
-            # Normalizar la clave de búsqueda
-            df_municipios['Clave_Original'] = df_municipios['Clave_Original'].astype(str).str.strip().str.upper()
-            df_municipios['Entidad_Corregida'] = df_municipios['Entidad_Corregida'].astype(str).str.strip().str.upper()
-            print("Tabla de municipios cargada.")
+            df_muni = pd.read_parquet(MUNICIPIOS_FILE)
+            # Forzamos nombres de columnas para que coincidan con la lógica de búsqueda
+            df_muni.columns = ['Clave_Original', 'Entidad_Corregida']
+            df_muni['Clave_Original'] = df_muni['Clave_Original'].astype(str).str.strip().str.upper()
         except Exception as e:
-             print(f"Error al cargar la tabla de municipios: {e}")
-             df_municipios = None
-    
-    # 2. Cargar la Tabla Principal
-    if not os.path.exists(DATA_FILE):
-        print(f"ERROR: Archivo no encontrado en: {DATA_FILE}")
-        return None
-        
+            st.error(f"Error al cargar tabla de municipios: {e}")
+
+    # B. Cargar y Unificar Base de Datos Principal
     try:
-        df = pd.read_excel(DATA_FILE)
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
-        df.dropna(subset=['Fecha'], inplace=True)
-        
-        # 3. REALIZAR EL MERGE (UNIÓN)
-        if df_municipios is not None:
-            # Crear columna auxiliar para la unión con la clave de la tabla principal
-            df['Sjto300_Merge'] = df['Sjto300'].astype(str).str.strip().str.upper()
+        # Verificamos que existan las 3 partes
+        if all(os.path.exists(f) for f in [DATA_PART1, DATA_PART2, DATA_PART3]):
+            p1 = pd.read_parquet(DATA_PART1)
+            p2 = pd.read_parquet(DATA_PART2)
+            p3 = pd.read_parquet(DATA_PART3)
             
-            # Realizar el Left Join
-            df_merged = df.merge(df_municipios, 
-                                 left_on='Sjto300_Merge', 
-                                 right_on='Clave_Original', 
-                                 how='left')
+            df_final = pd.concat([p1, p2, p3], ignore_index=True)
             
-            # Reemplazar 'Sjto300' (Entidad) con el valor corregido. 
-            # Si el merge no encontró coincidencia (NaN), mantiene el valor original de 'Sjto300'.
-            df['Sjto300'] = df_merged['Entidad_Corregida'].combine_first(df['Sjto300'])
+            # Procesamiento de fechas
+            df_final['Fecha'] = pd.to_datetime(df_final['Fecha'], errors='coerce')
+            df_final.dropna(subset=['Fecha'], inplace=True)
+
+            # Enriquecimiento (Merge con municipios)
+            if df_muni is not None:
+                df_final['Sjto300_Merge'] = df_final['Sjto300'].astype(str).str.strip().str.upper()
+                df_merged = df_final.merge(df_muni, left_on='Sjto300_Merge', right_on='Clave_Original', how='left')
+                
+                # Reemplazar Sjto300 con el nombre corregido si existe
+                df_final['Sjto300'] = df_merged['Entidad_Corregida'].combine_first(df_final['Sjto300'])
+                df_final.drop(columns=['Sjto300_Merge'], inplace=True, errors='ignore')
+
+            # Pre-normalizar nombres para que la búsqueda sea instantánea
+            df_final['nombreReceptor_normalizado'] = df_final['nombreReceptor'].apply(normalizar_nombre)
             
-            df.drop(columns=['Sjto300_Merge'], inplace=True, errors='ignore')
-            print("Datos principales enriquecidos con nombres de municipios.")
-        
-        # 4. Normalización del Nombre del Receptor (para búsqueda)
-        df['nombreReceptor_normalizado'] = df['nombreReceptor'].apply(normalizar_nombre)
-        print("Base de datos de servidores cargada y lista.")
-        return df
-        
+            return df_final
+        else:
+            st.error("Error: No se encontraron las 3 partes (.parquet) en la carpeta 'data'.")
+            return None
     except Exception as e:
-        print(f"Error al cargar o procesar el Excel: {e}")
+        st.error(f"Error crítico cargando datos: {e}")
         return None
 
-# Cargar el DataFrame una sola vez al inicio
-df = cargar_dataframe()
+# Cargamos el DataFrame global
+df = cargar_todo()
 
-# --- 2. VALIDACIÓN ---
+# --- 4. LÓGICA DE NEGOCIO Y BÚSQUEDA ---
+
 def validar_rfc(rfc):
-    """Valida si el formato de la cadena corresponde a un RFC (Física o Moral)."""
+    """Valida formato de RFC (Física/Moral)."""
     rfc = rfc.strip().upper()
     persona_fisica = r'^[A-ZÑ&]{4}[0-9]{6}[A-Z0-9]{3}$'
     persona_moral = r'^[A-ZÑ&]{3}[0-9]{6}[A-Z0-9]{3}$'
     return bool(re.match(persona_fisica, rfc) or re.match(persona_moral, rfc))
 
-def fecha_formato_largo(fecha):
-    """Convierte un objeto datetime a un formato de texto largo."""
-    if pd.isna(fecha):
-        return "Fecha no disponible"
-    meses = [
-        "enero", "febrero", "marzo", "abril", "mayo", "junio",
-        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-    ]
-    return f"{fecha.day} de {meses[fecha.month - 1]} de {fecha.year}"
-
-# --- 3. PROCESAMIENTO DE REGISTROS ---
 def procesar_registros(filtrado):
-    """Agrupa los registros del servidor público por departamento para consolidar periodos."""
-    
-    nombre = filtrado['nombreReceptor'].iloc[0]
-
+    """Agrupa registros por departamento para consolidar periodos."""
+    nombre_completo = filtrado['nombreReceptor'].iloc[0]
     grupos = filtrado.groupby('departamento') 
     registros = []
 
     for dept, datos in grupos:
-        entidad = datos['Sjto300'].iloc[0] # Contiene el valor corregido/original
+        entidad = datos['Sjto300'].iloc[0]
         puesto = datos['puesto'].iloc[0] 
         
         fecha_inicial = datos['fechaInicialPago'].min()
         fecha_final = datos['fechaFinalPago'].max()
 
-        periodo = (
-            f"{fecha_formato_largo(fecha_inicial)} a "
-            f"{fecha_formato_largo(fecha_final)}"
-        ).upper()
+        periodo = (f"{fecha_formato_largo(fecha_inicial)} A {fecha_formato_largo(fecha_final)}")
 
         registros.append({
-            "Nombre": nombre,
+            "Nombre": nombre_completo,
             "Entidad": entidad,
             "Dependencia": dept,
             "Puesto": puesto,
@@ -133,25 +121,20 @@ def procesar_registros(filtrado):
 
     return "Consulta realizada con éxito.", pd.DataFrame(registros)
 
-# --- 4. FUNCIÓN DE BÚSQUEDA PRINCIPAL ---
 def buscar_datos(query):
-    """Determina si buscar por RFC o Nombre y ejecuta la consulta."""
-    
+    """Función principal llamada desde app.py."""
     if df is None:
-        return "Error interno: Base de datos no cargada.", None
+        return "Error interno: Base de datos no disponible.", None
     
     query = query.strip().upper()
     
-    # 1. Búsqueda por RFC (Coincidencia Exacta)
+    # Búsqueda por RFC
     if validar_rfc(query):
         filtrado = df[df['ReceptorRFC'] == query]
-    
-    # 2. Búsqueda por Nombre (Coincidencia Exacta)
+    # Búsqueda por Nombre (Exacta)
     else:
-        nombre_normalizado = normalizar_nombre(query)
-        
-        # Coincidencia Exacta solicitada por el usuario
-        filtrado = df[df['nombreReceptor_normalizado'] == nombre_normalizado]
+        nombre_busqueda = normalizar_nombre(query)
+        filtrado = df[df['nombreReceptor_normalizado'] == nombre_busqueda]
     
     if filtrado.empty:
         return "No se encontraron datos para la búsqueda.", None
