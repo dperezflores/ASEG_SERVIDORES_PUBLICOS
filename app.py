@@ -10,89 +10,85 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- 2. INYECCIÓN DE ESTILO CSS (Tu diseño institucional) ---
+# --- 2. CSS PARA FORZAR EL DISEÑO ---
 st.markdown("""
     <style>
-    :root {
-        --color-principal-oscuro: #00304F;
-        --color-acento-fuerte: #FF5E12;
-        --color-fondo-pagina: #f4f4f9;
+    /* Ocultar elementos innecesarios de Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Contenedor Principal */
+    .main {
+        background-color: #f4f4f9;
     }
-    
-    /* Estilo para el Header / Franja Naranja */
-    .custom-header {
-        background-color: var(--color-acento-fuerte);
-        height: 70px;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        padding: 0 40px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    
-    /* Títulos y textos */
-    h1 {
-        color: var(--color-principal-oscuro) !important;
-        text-align: center;
-    }
-    
-    /* Personalización de botones */
-    .stButton>button {
-        background-color: var(--color-principal-oscuro) !important;
-        color: white !important;
+
+    /* Franja Naranja Superior */
+    .orange-bar {
+        background-color: #FF5E12;
+        height: 80px;
         width: 100%;
-        border-radius: 6px;
+        border-radius: 0px 0px 10px 10px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding-right: 20px;
+    }
+
+    /* Estilo del Título */
+    .titulo-principal {
+        color: #00304F;
+        text-align: center;
+        font-family: 'Segoe UI', sans-serif;
+        font-weight: bold;
+        font-size: 40px;
+        margin-top: 20px;
+    }
+
+    /* Botón de Búsqueda */
+    .stButton>button {
+        background-color: #00304F !important;
+        color: white !important;
+        height: 3em;
+        width: 100%;
     }
     </style>
-    
-    <div class="custom-header">
-        </div>
     """, unsafe_allow_html=True)
 
-# --- 3. LOGO Y TÍTULO ---
-# Aquí es donde va el logo. Usamos columnas para alinearlo a la derecha como en tu CSS original
-col_logo_1, col_logo_2 = st.columns([3, 1])
-with col_logo_2:
-    if os.path.exists("static/Logo.png"):
-        st.image("static/Logo.png", width=150)
+# --- 3. LOGO Y ENCABEZADO ---
+# Forzamos la barra naranja y el logo dentro de ella
+st.markdown('<div class="orange-bar">', unsafe_allow_html=True)
+# Intentamos cargar el logo. Si no existe, no rompe la app.
+if os.path.exists("static/Logo.png"):
+    st.image("static/Logo.png", width=120)
+st.markdown('</div>', unsafe_allow_html=True)
 
-st.title("🔍 Consulta de Servidores Públicos")
+st.markdown('<h1 class="titulo-principal">🔍 Consulta de Servidores Públicos</h1>', unsafe_allow_html=True)
 
 # --- 4. INTERFAZ DE BÚSQUEDA ---
 with st.container():
-    # Usamos columnas para que el input y el botón estén en la misma línea
-    c1, c2 = st.columns([4, 1])
-    with c1:
-        query = st.text_input(
-            "Buscador", 
-            placeholder="Ingrese RFC o Nombre Completo", 
-            label_visibility="collapsed"
-        ).strip().upper()
-    with c2:
-        boton_buscar = st.button("Buscar")
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        query = st.text_input("Buscador", placeholder="Ingrese RFC o Nombre Completo", label_visibility="collapsed").strip().upper()
+    with col2:
+        boton = st.button("Buscar")
 
-# --- 5. LÓGICA DE RESULTADOS ---
-if boton_buscar or query:
+# --- 5. LÓGICA DE DATOS ---
+if boton or query:
     if df is None:
-        st.error("Error: La base de datos no se cargó correctamente.")
+        # Si df es None, intentamos ver por qué
+        st.error("⚠️ Error: No se encontraron los archivos en la carpeta 'data/'. Verifica que los archivos .parquet estén en GitHub.")
     elif not query:
-        st.warning("Por favor, ingrese un RFC o Nombre para buscar.")
+        st.warning("Por favor, ingresa un dato para buscar.")
     else:
         mensaje, resultados_df = buscar_datos(query)
-        
         if "éxito" in mensaje.lower():
             st.success(mensaje)
-            
-            # Nombre del servidor como encabezado
-            nombre_servidor = resultados_df["Nombre"].iloc[0]
-            st.markdown(f"### 👤 {nombre_servidor}")
-            
-            # Tabla de resultados (estilo fijo para que se vea como tu HTML)
+            st.markdown(f"### 👤 {resultados_df['Nombre'].iloc[0]}")
             st.table(resultados_df)
         else:
             st.error(mensaje)
 
 # Pie de página
-st.markdown("---")
-st.caption("© 2026 Sistema de Consulta Institucional - ASEG")
+st.markdown("<br><hr><center>© 2026 Sistema de Consulta Institucional - ASEG</center>", unsafe_allow_html=True)
