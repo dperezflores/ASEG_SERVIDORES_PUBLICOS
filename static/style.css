@@ -1,0 +1,171 @@
+/* static/style.css - DISEÑO INSTITUCIONAL ASEG */
+
+/* Variables de Color (para fácil mantenimiento) */
+:root {
+    --color-principal-oscuro: #00304F; /* Azul Marino */
+    --color-acento-fuerte: #FF5E12;    /* Naranja Intenso */
+    --color-acento-claro: #FF7D42;     /* Naranja Claro */
+    --color-texto-oscuro: #362D32;     /* Gris Oscuro para texto */
+    --color-fondo-claro: #D6D6D6;      /* Gris Claro de fondo */
+    --color-fondo-pagina: #f4f4f9;     /* Fondo de la página */
+    --color-fondo-hover: #57A0D4
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--color-fondo-pagina);
+    padding: 0;
+    margin: 0;
+    padding-top: 100 px;
+}
+
+/* --- CABECERA SUPERIOR (FRANJA) --- */
+#header {
+    background-color: var(--color-acento-fuerte); /* Fondo Azul Marino */
+    height: 70px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    /*width: 100%;*/
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Alinear contenido a la derecha */
+    padding: 0 40px;
+    
+
+}
+
+#logo-aseg {
+    max-height: 100px; /* Ajusta el logo a la altura del header */
+    width: auto;
+}
+/* ------------------------------------ */
+
+
+.container {
+    max-width: 900px;
+    margin: 100px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: var(--color-principal-oscuro); /* Azul Marino */
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+/* Formulario */
+form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    padding: 15px;
+    border: 1px solid var(--color-fondo-claro);
+    border-radius: 8px;
+    background-color: #f7f9fc;
+}
+
+input[type="text"] {
+    flex-grow: 1;
+    padding: 12px;
+    border: 1px solid var(--color-fondo-claro);
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+    text-transform: uppercase;
+}
+
+input[type="text"]::placeholder {
+    text-transform: none;
+}
+
+input[type="text"]::-webkit-input-placeholder { /*chrome, Safari, Opera */ 
+    text-transform: none
+}
+
+input[type="text"]:-ms-input-placeholder { /* Internet Explorer 10-11 */
+    text-transform: none;
+
+}
+
+button[type="submit"] {
+    padding: 12px 25px;
+    background-color: var(--color-principal-oscuro); /* Naranja Intenso */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+button[type="submit"]:hover {
+    background-color: var(--color-fondo-hover); /* Naranja Claro */
+}
+
+/* Mensajes */
+.message {
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid;
+}
+
+.error {
+    background-color: #fce8e6; 
+    color: #c5221f; 
+    border-color: #f9bdbb;
+}
+
+.success {
+    background-color: #e6f4ea; 
+    color: #1e8e3e; 
+    border-color: #c3e8cd;
+}
+
+/* Tabla de Resultados */
+h2 {
+    color: var(--color-texto-oscuro); /* Gris Oscuro */
+    border-bottom: 2px solid var(--color-fondo-claro);
+    padding-bottom: 10px;
+    margin-top: 30px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+table th, table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-fondo-claro);
+}
+
+table th {
+    background-color: var(--color-acento-claro); /* Azul Marino */
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tr:hover {
+    background-color: #f0f0ff;
+}
