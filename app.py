@@ -57,11 +57,15 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 3. LOGO Y ENCABEZADO ---
-# Forzamos la barra naranja y el logo dentro de ella
+BASE_DIR_APP = os.path.dirname(os.path.abspath(__file__))
+LOGO_PATH = os.path.join(BASE_DIR_APP, 'static', 'Logo.png')
+
 st.markdown('<div class="orange-bar">', unsafe_allow_html=True)
-# Intentamos cargar el logo. Si no existe, no rompe la app.
-if os.path.exists("static/Logo.png"):
-    st.image("static/Logo.png", width=120)
+if os.path.exists(LOGO_PATH):
+    st.image(LOGO_PATH, width=120)
+else:
+    # Esto te ayudará a saber si Streamlit NO encuentra el logo
+    st.write(f"Logo no encontrado en: {LOGO_PATH}") 
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<h1 class="titulo-principal">🔍 Consulta de Servidores Públicos</h1>', unsafe_allow_html=True)
