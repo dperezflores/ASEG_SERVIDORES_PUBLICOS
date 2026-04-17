@@ -16,8 +16,56 @@ MUNICIPIOS_FILE = os.path.join(BASE_DIR, 'data', 'TABLA_MUNICIPIOS.parquet')
 
 @st.cache_data
 def cargar_todo():
-    # Aquí puedes poner un print para depurar en los logs de Streamlit
-    print(f"Buscando archivos en: {BASE_DIR}")
+    df_final = None
+    df_muni = None
+
+    # 1. Cargar Tabla de Municipios (Lookup)
+    if os.path.exists(MUNICIPIOS_FILE):
+        try:
+            temp_muni = pd.read_parquet(MUNICIPIOS_FILE)
+            
+            # Tu lógica original decía que usabas la columna A y C (índices 0 y 2)
+            # Vamos a extraer solo esas dos sin importar cuántas tenga el archivo
+            df_muni = temp_muni.iloc[:, [0, 2]].copy() 
+            df_muni.columns = ['Clave_Original', 'Entidad_Corregida']
+            
+            df_muni['Clave_Original'] = df_muni['Clave_Original'].astype(str).str.strip().str.upper()
+            print("Tabla de municipios cargada correctamente.")
+        except Exception as e:
+            st.error(f"Error al procesar columnas de municipios: {e}")
+
+    # 2. Cargar y Unificar Base de Datos Principal
+    try:
+        if all(os.path.exists(f) for f in [DATA_PART1, DATA_PART2, DATA_PART3]):
+            p1 = pd.read_parquet(DATA_PART1)
+            p2 = pd.read_parquet(DATA_PART2)
+            p3 = pd.read_parquet(DATA_PART3)
+            
+            df_final = pd.concat([p1, p2, p3], ignore_index=True)
+            
+            # Procesamiento de fechas
+            df_final['Fecha'] = pd.to_datetime(df_final['Fecha'], errors='coerce')
+            df_final.dropna(subset=['Fecha'], inplace=True)
+
+            # Enriquecimiento (Merge)
+            if df_muni is not None:
+                # Nos aseguramos de que Sjto300 sea string para comparar
+                df_final['Sjto300_Merge'] = df_final['Sjto300'].astype(str).str.strip().str.upper()
+                
+                df_merged = df_final.merge(df_muni, left_on='Sjto300_Merge', right_on='Clave_Original', how='left')
+                
+                # Reemplazamos y limpiamos
+                df_final['Sjto300'] = df_merged['Entidad_Corregida'].combine_first(df_final['Sjto300'])
+                df_final.drop(columns=['Sjto300_Merge'], inplace=True, errors='ignore')
+
+            # Normalización para búsqueda
+            df_final['nombreReceptor_normalizado'] = df_final['nombreReceptor'].apply(normalizar_nombre)
+            return df_final
+        else:
+            return None
+    except Exception as e:
+        st.error(f"Error crítico en la unión de datos: {e}")
+        return None
 
 # --- 2. FUNCIONES DE APOYO ---
 
