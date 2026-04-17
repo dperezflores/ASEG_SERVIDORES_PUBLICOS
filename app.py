@@ -1,88 +1,91 @@
 import streamlit as st
 import os
+import base64
 from data_manager import buscar_datos, df
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
     page_title="Consulta de Servidores Públicos",
     page_icon="🔍",
-    layout="wide" # Cambiamos a wide para facilitar el uso del ancho total
+    layout="wide"
 )
 
-# --- 2. CSS AVANZADO (Para forzar el 100% de ancho) ---
-st.markdown("""
+# Función para convertir imagen local a base64 (para que el CSS la vea sí o sí)
+def get_base64_image(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return None
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+logo_b64 = get_base64_image(os.path.join(BASE_DIR, 'static', 'Logo.png'))
+
+# --- 2. CSS PARA ELIMINAR TODO MARGEN ---
+st.markdown(f"""
     <style>
-    /* Eliminar márgenes superiores de Streamlit */
-    .block-container {
-        padding-top: 0rem;
-        padding-bottom: 0rem;
-        padding-left: 0rem;
-        padding-right: 0rem;
+    /* 1. Eliminar márgenes internos de Streamlit */
+    .block-container {{
+        padding: 0rem !important;
         max-width: 100% !important;
-    }
+    }}
     
-    /* Forzar la barra naranja al borde superior y 100% de ancho */
-    .orange-bar {
+    /* 2. Eliminar el espacio en blanco superior (Header de Streamlit) */
+    header {{
+        display: none !important;
+    }}
+
+    /* 3. Barra Naranja al 100% real */
+    .header-aseg {{
         background-color: #FF5E12;
-        width: 100vw;
+        width: 100%;
         height: 70px;
         display: flex;
         align-items: center;
-        justify-content: flex-end; /* Logo a la derecha */
-        padding-right: 40px;
-        margin-bottom: 50px;
-        position: relative;
-        left: 0;
-    }
+        justify-content: flex-end;
+        padding-right: 50px;
+        margin: 0;
+    }}
 
-    .logo-container {
-        max-height: 50px;
-    }
-
-    /* Centrar el contenido de búsqueda nuevamente */
-    .search-box {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
+    /* 4. Contenedor de la búsqueda (Tarjeta blanca centrada) */
+    .main-card {{
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 40px;
         background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    }
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }}
 
-    h1 {
+    h1 {{
         color: #00304F;
         text-align: center;
-        font-family: sans-serif;
-    }
+        margin-bottom: 30px;
+    }}
 
-    .stButton>button {
+    .stButton>button {{
         background-color: #00304F !important;
         color: white !important;
-    }
+        border-radius: 6px;
+    }}
     </style>
-    """, unsafe_allow_html=True)
-
-# --- 3. BARRA NARANJA SUPERIOR AL 100% ---
-# Usamos un div con el logo directamente para control total
-LOGO_URL = "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/static/Logo.png"
-
-st.markdown(f"""
-    <div class="orange-bar">
-        <img src="{LOGO_URL}" height="45">
+    
+    <div class="header-aseg">
+        <img src="data:image/png;base64,{logo_b64}" height="45">
     </div>
     """, unsafe_allow_html=True)
 
-# --- 4. CONTENEDOR DE BÚSQUEDA ---
-# Abrimos un div para dar efecto de "tarjeta" blanca centrada
-st.markdown('<div class="search-box">', unsafe_allow_html=True)
+# --- 3. CUERPO DE LA APLICACIÓN ---
+# Envolvemos todo en un contenedor centrado
+st.markdown('<div class="main-card">', unsafe_allow_html=True)
 
 st.title("🔍 Consulta de Servidores Públicos")
 
-col1, col2 = st.columns([4, 1])
-with col1:
-    query = st.text_input("Búsqueda", placeholder="Ingrese RFC o Nombre Completo", label_visibility="collapsed").strip().upper()
-with col2:
-    buscar = st.button("Buscar")
+with st.container():
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        query = st.text_input("Buscador", placeholder="Ingrese RFC o Nombre Completo", label_visibility="collapsed").strip().upper()
+    with col2:
+        buscar = st.button("Buscar")
 
 if buscar or query:
     if df is not None:
@@ -96,7 +99,7 @@ if buscar or query:
     else:
         st.error("Error al cargar la base de datos.")
 
-st.markdown('</div>', unsafe_allow_html=True) # Cerramos search-box
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Pie de página
-st.markdown("<br><br><center>© 2026 Sistema de Consulta Institucional - ASEG</center>", unsafe_allow_html=True)
+st.markdown("<br><center>© 2026 Sistema de Consulta Institucional - ASEG</center>", unsafe_allow_html=True)
