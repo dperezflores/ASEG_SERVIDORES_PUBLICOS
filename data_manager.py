@@ -4,6 +4,11 @@ import re
 import unicodedata
 import os
 import numpy as np
+import streamlit as st
+
+@st.cache_data
+def cargar_dataframe():
+    # ... todo el código que ya tienes dentro de la función ...
 
 # --- 1. CONFIGURACIÓN Y CARGA DE DATOS ---
 
