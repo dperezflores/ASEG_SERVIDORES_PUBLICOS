@@ -4,12 +4,20 @@ import unicodedata
 import os
 import streamlit as st
 
-# --- 1. CONFIGURACIÓN DE RUTAS ---
-# Definimos las rutas a los archivos .parquet dentro de la carpeta 'data'
-DATA_PART1 = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede_P1.parquet')
-DATA_PART2 = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede_P2.parquet')
-DATA_PART3 = os.path.join(os.path.dirname(__file__), 'data', 'data_Fede_P3.parquet')
-MUNICIPIOS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'TABLA_MUNICIPIOS.parquet')
+# --- CONFIGURACIÓN DE RUTAS DINÁMICAS ---
+# Esto obtiene la carpeta actual donde está data_manager.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Construimos las rutas uniendo la base con la carpeta 'data'
+DATA_PART1 = os.path.join(BASE_DIR, 'data', 'data_Fede_P1.parquet')
+DATA_PART2 = os.path.join(BASE_DIR, 'data', 'data_Fede_P2.parquet')
+DATA_PART3 = os.path.join(BASE_DIR, 'data', 'data_Fede_P3.parquet')
+MUNICIPIOS_FILE = os.path.join(BASE_DIR, 'data', 'TABLA_MUNICIPIOS.parquet')
+
+@st.cache_data
+def cargar_todo():
+    # Aquí puedes poner un print para depurar en los logs de Streamlit
+    print(f"Buscando archivos en: {BASE_DIR}")
 
 # --- 2. FUNCIONES DE APOYO ---
 
