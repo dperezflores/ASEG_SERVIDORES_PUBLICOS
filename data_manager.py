@@ -36,6 +36,15 @@ def cargar_todo():
 
     # 2. Cargar y Unificar Base de Datos Principal
     try:
+        st.write("Rutas esperadas:")
+        st.write(DATA_PART1)
+        st.write(DATA_PART2)
+        st.write(DATA_PART3)
+
+        st.write("¿Existen?")
+        st.write(os.path.exists(DATA_PART1))
+        st.write(os.path.exists(DATA_PART2))
+        st.write(os.path.exists(DATA_PART3))
         if all(os.path.exists(f) for f in [DATA_PART1, DATA_PART2, DATA_PART3]):
             p1 = pd.read_parquet(DATA_PART1)
             p2 = pd.read_parquet(DATA_PART2)
